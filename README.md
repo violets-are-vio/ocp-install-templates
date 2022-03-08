@@ -20,5 +20,5 @@ https://console.redhat.com/openshift
   - first define your hostnames and adresses on dhcpd.conf
   - adjust in haproxy.cfg, named.conf, zones/db.ocp.lan, zones/db.reverse
   - run ssh-keygen, then add .ssh/id_rsa.pub and pull secret to install-config.yaml
-- make bash script executable: chmod +x /ocp-install-templates/ocp-install-prep.sh
+- make bash script executable: chmod +x ~/ocp-install-templates/ocp-install-prep.sh
 - run script: ./ocp-install-templates/ocp-install-prep.sh
