@@ -1,21 +1,21 @@
 #! /usr/bin/env bash
 
 # install services
-dnf update
+dnf update -y
 dnf install bind bind-utils dhcp-server httpd haproxy nfs-utils -y
 
 # extract client tools and copy them to /usr/local/bin
-tar xvf openshift-client-linux.tar.gz
-mv oc kubectl /usr/local/bin # verify this worked by trying 'kubectl version" and 'oc version'
-tar xvf openshift-install-linux.tar.gz
+#tar xvf openshift-client-linux.tar.gz
+#mv oc kubectl /usr/local/bin # verify this worked by trying 'kubectl version" and 'oc version'
+#tar xvf openshift-install-linux.tar.gz
 
 # apply config that were pulled from git repository
-\cp ~/ocp-install-templates/config-files/named.conf /etc/named.conf
-cp -R ~/ocp-install-templates/config-files/zones /etc/named
-\cp ~/ocp-install-templates/config-files/dhcpd.conf /etc/dhcp/dhcpd.conf
-\cp ~/ocp-install-templates/config-files/haproxy.cfg /etc/haproxy/haproxy.cfg
-mkdir ~/ocp-install-files
-cp ~/ocp-install-templates/install-config.yaml ~/ocp-install-files # edit pull-secret and ssh-file in install-config.yaml
+\cp /home/aizadi/ocp-install-templates/config-files/named.conf /etc/named.conf
+cp -R /home/aizadi/ocp-install-templates/config-files/zones /etc/named
+\cp /home/aizadi/ocp-install-templates/config-files/dhcpd.conf /etc/dhcp/dhcpd.conf
+\cp /home/aizadi/ocp-install-templates/config-files/haproxy.cfg /etc/haproxy/haproxy.cfg
+mkdir /home/aizadi/ocp-install-files
+cp /home/aizadi/ocp-install-templates/install-config.yaml /home/aizadi/ocp-install-files # edit pull-secret and ssh-file in install-config.yaml
 
 # change default listen port to 8080 in httpd.conf
 sed -i 's/Listen 80/Listen 0.0.0.0:8080/' /etc/httpd/conf/httpd.conf
@@ -29,7 +29,7 @@ firewall-cmd --add-service=dhcp --zone=internal --permanent
 firewall-cmd --add-port=8080/tcp --zone=internal --permanent
 firewall-cmd --add-port=6443/tcp --zone=internal --permanent # kube-api-server on control plane nodes
 firewall-cmd --add-port=6443/tcp --zone=external --permanent # kube-api-server on control plane nodes
-firewall-cmd --add-port=22623/tcp --zone=internal --permanent # machine-config server
+firewall-cmd --add-port=22624/tcp --zone=internal --permanent # machine-config server
 firewall-cmd --add-service=http --zone=internal --permanent # web services hosted on worker nodes
 firewall-cmd --add-service=http --zone=external --permanent # web services hosted on worker nodes
 firewall-cmd --add-service=https --zone=internal --permanent # web services hosted on worker nodes
@@ -43,30 +43,30 @@ firewall-cmd --reload
 # enable and start services
 setsebool -P haproxy_connect_any 1 # SELinux name_bind access
 systemctl enable named dhcpd httpd haproxy nfs-server rpcbind
-systemctl start named dhcpd httpd haproxy nfs-server rpcbind nfs-mounted
+systemctl start named dhcpd httpd haproxy nfs-server rpcbind nfs-mountd
 systemctl restart NetworkManager
 
 # create and export share
 mkdir -p /shares/registry
 chown -R nobody:nobody /shares/registry
 chmod -R 777 /shares/registry
-# run with your subnet-address: echo "/shares/registry  192.168.22.0/24(rw,sync,root_squash,no_subtree_check,no_wdelay)" > /etc/exports exportfs -rv
+echo "/shares/registry  172.16.22.20/24(rw,sync,root_squash,no_subtree_check,no_wdelay)" > /etc/exports
+exportfs -rv
 
 # generate kubernetes manifest files
-~/openshift-install create manifests --dir ~/ocp-install-files
+/home/aizadi/openshift-install create manifests --dir /home/aizadi/ocp-install-files
 
 # generate ignition config and kubernetes auth files
-~/openshift-install create ignition-configs --dir ~/ocp-install-files
+/home/aizadi/openshift-install create ignition-configs --dir /home/aizadi/ocp-install-files
 
 # create hosting directory for Openshift booting process
 mkdir /var/www/html/ocp4
 
 # copy all generated install files to the directory
-cp -R ~/ocp-install-files/* /var/www/html/ocp4
+cp -R /home/aizadi/ocp-install-files/* /var/www/html/ocp4
 
 # change ownership and permissions
 chcon -R -t httpd_sys_content_t /var/www/html/ocp4/
 chown -R apache: /var/www/html/ocp4/
 chmod 755 /var/www/html/ocp4/
 echo $(curl localhost:8080/ocp4/) # confirm you can see all files added to the web server
-
