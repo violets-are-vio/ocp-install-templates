@@ -5,17 +5,17 @@ dnf update -y
 dnf install bind bind-utils dhcp-server httpd haproxy nfs-utils -y
 
 # extract client tools and copy them to /usr/local/bin
-#tar xvf openshift-client-linux.tar.gz
-#mv oc kubectl /usr/local/bin # verify this worked by trying 'kubectl version" and 'oc version'
-#tar xvf openshift-install-linux.tar.gz
+tar xvf openshift-client-linux.tar.gz
+mv oc kubectl /usr/local/bin # verify this worked by trying 'kubectl version" and 'oc version'
+tar xvf openshift-install-linux.tar.gz
 
 # apply config that were pulled from git repository
-\cp /home/aizadi/ocp-install-templates/config-files/named.conf /etc/named.conf
-cp -R /home/aizadi/ocp-install-templates/config-files/zones /etc/named
-\cp /home/aizadi/ocp-install-templates/config-files/dhcpd.conf /etc/dhcp/dhcpd.conf
-\cp /home/aizadi/ocp-install-templates/config-files/haproxy.cfg /etc/haproxy/haproxy.cfg
-mkdir /home/aizadi/ocp-install-files
-cp /home/aizadi/ocp-install-templates/install-config.yaml /home/aizadi/ocp-install-files # edit pull-secret and ssh-file in install-config.yaml
+\cp /home/$1/ocp-install-templates/config-files/named.conf /etc/named.conf
+cp -R /home/$1/ocp-install-templates/config-files/zones /etc/named
+\cp /home/$1/ocp-install-templates/config-files/dhcpd.conf /etc/dhcp/dhcpd.conf
+\cp /home/$1/ocp-install-templates/config-files/haproxy.cfg /etc/haproxy/haproxy.cfg
+mkdir /home/$1/ocp-install-files
+cp /home/$1/ocp-install-templates/install-config.yaml /home/$1/ocp-install-files # edit pull-secret and ssh-file in install-config.yaml
 
 # change default listen port to 8080 in httpd.conf
 sed -i 's/Listen 80/Listen 0.0.0.0:8080/' /etc/httpd/conf/httpd.conf
@@ -50,20 +50,20 @@ systemctl restart NetworkManager
 mkdir -p /shares/registry
 chown -R nobody:nobody /shares/registry
 chmod -R 777 /shares/registry
-echo "/shares/registry  172.16.22.20/24(rw,sync,root_squash,no_subtree_check,no_wdelay)" > /etc/exports
+echo "/shares/registry  $2(rw,sync,root_squash,no_subtree_check,no_wdelay)" > /etc/exports # replace with your own subnet
 exportfs -rv
 
 # generate kubernetes manifest files
-/home/aizadi/openshift-install create manifests --dir /home/aizadi/ocp-install-files
+/home/$1/openshift-install create manifests --dir /home/$1/ocp-install-files
 
 # generate ignition config and kubernetes auth files
-/home/aizadi/openshift-install create ignition-configs --dir /home/aizadi/ocp-install-files
+/home/$1/openshift-install create ignition-configs --dir /home/$1/ocp-install-files
 
 # create hosting directory for Openshift booting process
 mkdir /var/www/html/ocp4
 
 # copy all generated install files to the directory
-cp -R /home/aizadi/ocp-install-files/* /var/www/html/ocp4
+cp -R /home/$1/ocp-install-files/* /var/www/html/ocp4
 
 # change ownership and permissions
 chcon -R -t httpd_sys_content_t /var/www/html/ocp4/
